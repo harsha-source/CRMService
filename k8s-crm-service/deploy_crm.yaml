@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-deploy
+  namespace: bookstore-ns
+spec:
+  selector:
+    matchLabels:
+      app: crm-service
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: crm-service
+    spec:
+      containers:
+        - name: crm-service
+          image: hdurvasy/crm-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+          env:
+            - name: URL_BASE_RECOMMENDATION
+              value: http://recommendation-service:8080
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8083
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - crm-service
